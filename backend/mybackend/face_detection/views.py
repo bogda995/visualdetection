@@ -24,7 +24,7 @@ class FaceDetectionView(APIView):
             prediction_response = detector_model.predict_by_url(
                 IMAGE_URL, input_type="image"
             )
-            
+
             # Log the raw response for debugging
             print("Prediction Response:", prediction_response)
 
