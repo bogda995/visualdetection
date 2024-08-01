@@ -1,4 +1,6 @@
 import React from "react";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Navigation from "./components/Navigation/Navigation";
 import Logo from "./components/Logo/Logo";
 import ImageLinkForm from "./components/ImageLinkForm/ImageLinkForm";
@@ -37,17 +39,26 @@ class App extends React.Component {
       };
     } else {
       console.warn("No face detected in the image.");
+      toast.warn("No face detected in the image. Please try another photo.", {
+        position: "top-right",  // You can choose "top-right", "top-center", "bottom-right", etc.
+        autoClose: 5000,        // Closes after 5 seconds
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",        // Options: "light", "dark", or "colored"
+      });
       return {}; // Return an empty object or handle accordingly
     }
   }
 
   displayFaceBox = (box) => {
-    this.setState({ box: box });
+    this.setState({ box });
   }
 
   onInputChange = (event) => {
     this.setState({ input: event.target.value });
-    console.log('Image URL:', event.target.value);
   };
 
   onButtonSubmit = () => {
@@ -105,6 +116,7 @@ class App extends React.Component {
           onButtonSubmit={this.onButtonSubmit}
         />
         <FaceRecognition box={this.state.box} imageUrl={this.state.imageUrl} />
+        <ToastContainer />
       </div>
     );
   }
