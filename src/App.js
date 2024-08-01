@@ -1,6 +1,6 @@
 import React from "react";
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Navigation from "./components/Navigation/Navigation";
 import Logo from "./components/Logo/Logo";
 import ImageLinkForm from "./components/ImageLinkForm/ImageLinkForm";
@@ -8,100 +8,103 @@ import Rank from "./components/Rank/Rank";
 import FaceRecognition from "./components/FaceRecognition/FaceRecognition";
 import "./App.css";
 import ParticlesBg from "particles-bg";
+import axios from "./api"; // Import the axios instance
+import { ThreeDots } from "react-loader-spinner";
 
 class App extends React.Component {
   constructor() {
     super();
     this.state = {
-      input: '',
-      imageUrl: '',
+      input: "",
+      imageUrl: "",
       box: {}, // Initialize the box state
+      isLoading: false,
     };
   }
 
   calculateFaceLocation = (data) => {
-    if (
-      data.outputs &&
-      data.outputs[0] &&
-      data.outputs[0].data &&
-      data.outputs[0].data.regions &&
-      data.outputs[0].data.regions.length > 0
-    ) {
-      const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
+    const faceData = data.faces[0]; // Make sure this matches the response structure
+    if (faceData) {
+      const { top_row, left_col, bottom_row, right_col } = faceData;
       const image = document.getElementById('inputimage');
-      const width = Number(image.width);
-      const height = Number(image.height);
-      return {
-        leftCol: clarifaiFace.left_col * width,
-        topRow: clarifaiFace.top_row * height,
-        rightCol: width - (clarifaiFace.right_col * width),
-        bottomRow: height - (clarifaiFace.bottom_row * height)
-      };
+
+      // Check if the image element exists
+      if (image) {
+        const width = Number(image.width);
+        const height = Number(image.height);
+        return {
+          leftCol: left_col * width,
+          topRow: top_row * height,
+          rightCol: width - (right_col * width),
+          bottomRow: height - (bottom_row * height),
+        };
+      } else {
+        console.warn("Image element not found.");
+        return {};
+      }
     } else {
       console.warn("No face detected in the image.");
       toast.warn("No face detected in the image. Please try another photo.", {
-        position: "top-right",  // You can choose "top-right", "top-center", "bottom-right", etc.
-        autoClose: 5000,        // Closes after 5 seconds
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",        // Options: "light", "dark", or "colored"
+        position: "top-right",
+        autoClose: 5000,
       });
-      return {}; // Return an empty object or handle accordingly
+      return {};
     }
-  }
+  };
 
   displayFaceBox = (box) => {
     this.setState({ box });
-  }
+  };
 
   onInputChange = (event) => {
     this.setState({ input: event.target.value });
   };
 
   onButtonSubmit = () => {
-    this.setState({ imageUrl: this.state.input });
+    const imageUrl = this.state.input;
+    if (!imageUrl) {
+      toast.warn("Please provide a valid image URL.", {
+        position: "top-right",
+        autoClose: 5000,
+      });
+      return;
+    }
 
-    const PAT = 'c37b5e56b4d446f48071c891d8c33900';
-    const USER_ID = 'clarifai';
-    const APP_ID = 'main';
-    const MODEL_ID = 'face-detection';
-    const MODEL_VERSION_ID = '6dc7e46bc9124c5c8824be4822abe105';
+    this.setState({ imageUrl, isLoading: true }); // Set isLoading to true
 
-    const raw = JSON.stringify({
-      "user_app_id": {
-        "user_id": USER_ID,
-        "app_id": APP_ID
-      },
-      "inputs": [
-        {
-          "data": {
-            "image": {
-              "url": this.state.input
-            }
-          }
+    axios
+      .post("/detect/", { image_url: imageUrl })
+      .then((response) => {
+        console.log("API Response:", response.data);
+        this.setState({ isLoading: false }); // Set isLoading to false
+        if (response.data.error) {
+          console.error("Error:", response.data.error);
+          toast.warn(response.data.error, {
+            position: "top-right",
+            autoClose: 5000,
+          });
+        } else if (response.data.faces && response.data.faces.length === 0) {
+          toast.warn("No face detected in the image.", {
+            position: "top-right",
+            autoClose: 5000,
+          });
+        } else {
+          this.setState({ box: response.data.faces[0] });
         }
-      ]
-    });
-
-    const requestOptions = {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Key ' + PAT
-      },
-      body: raw
-    };
-
-    fetch(`https://api.clarifai.com/v2/models/${MODEL_ID}/versions/${MODEL_VERSION_ID}/outputs`, requestOptions)
-      .then(response => response.json())
-      .then(result => {
-        console.log('API Response:', result);
-        this.displayFaceBox(this.calculateFaceLocation(result));
       })
-      .catch(error => console.log('Error:', error));
+      .catch((error) => {
+        this.setState({ isLoading: false }); // Set isLoading to false
+        toast.error("Error detecting face.", {
+          position: "top-center",
+          autoClose: 3000,
+        });
+        console.error("Error:", error);
+      });
+  };
+
+  onImageLoad = () => {
+    // Calculate and display face box once the image is loaded
+    this.displayFaceBox(this.calculateFaceLocation({ faces: [this.state.box] }));
   };
 
   render() {
@@ -115,7 +118,15 @@ class App extends React.Component {
           onInputChange={this.onInputChange}
           onButtonSubmit={this.onButtonSubmit}
         />
-        <FaceRecognition box={this.state.box} imageUrl={this.state.imageUrl} />
+        {this.state.isLoading ? (
+          <ThreeDots color="#00BFFF" height={80} width={80} />
+        ) : (
+          <FaceRecognition
+            box={this.state.box}
+            imageUrl={this.state.imageUrl}
+            onImageLoad={this.onImageLoad} // Pass onImageLoad to FaceRecognition component
+          />
+        )}
         <ToastContainer />
       </div>
     );
