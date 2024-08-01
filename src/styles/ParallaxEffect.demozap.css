@@ -1,0 +1,27 @@
+.parallax-effect {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 5px;
+  background-color: transparent;
+  overflow: hidden; /* Ensure child elements do not overflow */
+}
+
+.inner-element {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+  background-color: transparent;
+}
+
+h2 {
+  margin: 0;
+  text-align: center;
+  width: 100%;
+}
