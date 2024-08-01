@@ -6,13 +6,13 @@ import Rank from "./components/Rank/Rank";
 import FaceRecognition from "./components/FaceRecognition/FaceRecognition";
 import "./App.css";
 import ParticlesBg from "particles-bg";
-import Clarifai from "clarifai";
+import axios from 'axios';
 
 // Initialize Clarifai with your API key directly
-const app = new Clarifai.App({
-  apiKey: '3e4143161d0a4063827b2e0ba96f9b06',
-  apiEndpoint: 'https://api.clarifai.com'
-});
+// const app = new Clarifai.App({
+//   apiKey: '3e4143161d0a4063827b2e0ba96f9b06',
+//   apiEndpoint: 'https://api.clarifai.com'
+// });
 
 class App extends React.Component {
   constructor() {
@@ -47,13 +47,33 @@ class App extends React.Component {
 
   onButtonSubmit = () => {
     this.setState({ imageUrl: this.state.input });
-    app.models.predict(Clarifai.FACE_DETECT_MODEL, this.state.input)
-      .then(response => {
-        if (response) {
-          this.displayFaceBox(this.calculateFaceLocation(response));
+
+    axios.post(
+      'https://api.clarifai.com/v2/models/face-detection/outputs',
+      {
+        inputs: [
+          {
+            data: {
+              image: {
+                url: this.state.input
+              }
+            }
+          }
+        ]
+      },
+      {
+        headers: {
+          Authorization: `Key 3e4143161d0a4063827b2e0ba96f9b06`,
+          'Content-Type': 'application/json'
         }
-      })
-      .catch(err => console.log(err));
+      }
+    )
+    .then(response => {
+      if (response.data) {
+        this.displayFaceBox(this.calculateFaceLocation(response.data));
+      }
+    })
+    .catch(err => console.log(err));
   };
 
   render() {
